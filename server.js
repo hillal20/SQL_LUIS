@@ -10,7 +10,13 @@ server.get("/", (req, res) => {
 });
 
 server.get("/zoos", (req, res) => {
-  db("zoos")
+  // db("zoos")
+
+  db.select("*")
+    .from("zoos")
+    .where("id", "in", [5, 6, 7])
+    .orWhere("id", "in", [9])
+    .whereNotIn("id", [9, 10])
     .then(zoos => {
       res.status(200).json(zoos);
     })
@@ -34,47 +40,24 @@ server.post("/zoos", (req, res) => {
     });
 });
 
-// server.put("/zoos/:id", (req, res) => {
-//   const changes = req.body;
-//   const id = req.params.id;
-//   console.log("changes ===>", changes);
-//   console.log("id ===>", id);
-//   db("zoos")
-//     .where({ id: id })
-//     // .select("name")
-//     .update(changes)
-//     .then(count => {
-//       console.log("count ===>", count); // number of records
-
-//       if (count) {
-//         db("zoos")
-//           .select("name")
-//           .where({ id: id })
-//           .then(zoo => {
-//             res.status(201).json({ msg: zoo });
-//           })
-//           .catch(err => {
-//             res.status(500).json(err);
-//           });
-//       } else {
-//         res.status(404).json({ msg: "the zoo not found" });
-//       }
-//     })
-//     .catch(err => {
-//       res.status(500).json({ msg: err });
-//     });
-// });
-
 server.put("/zoos/:id", (req, res) => {
   const changes = req.body;
   const { id } = req.params;
 
-  db("zoos")
+  db.select("*")
+    .from("zoos")
     .where("id", "=", id) // or .where({ id: id })
     .update(changes)
     .then(count => {
-      // count === number of records updated
-      res.status(200).json(count);
+      db.select("*")
+        .from("zoos")
+        .where("id", "=", id)
+        .then(updated => {
+          res.status(200).json(updated);
+        })
+        .catch(err => {
+          res.status(500).json(err);
+        });
     })
     .catch(err => {
       res.status(500).json(err);
@@ -84,15 +67,53 @@ server.put("/zoos/:id", (req, res) => {
 server.delete("/zoos/:id", (req, res) => {
   const { id } = req.params;
 
-  db("zoos")
-    .where({ id }) // or .where(id, '=', id)
+  db.select("*")
+    .from("zoos")
+    .where("id", "=", id) // or .where(id, '=', id)
     .del()
     .then(count => {
       // count === number of records deleted
-      res.status(200).json(count);
+      res.status(200).json({ msg: `record with id '${id}' deleted` });
     })
     .catch(err => {
       res.status(500).json(err);
+    });
+});
+
+server.get("/boos", (req, res) => {
+  db.schema.createTable("bills", table => {
+    table.increments();
+    table.string("name");
+    table.timestamps();
+  });
+  //db.schema.renameTable("users", "old_users");
+  //db.schema.dropTable("users");
+
+  db.select("*")
+    .from("bills")
+    // .where("id", "in", [5, 6, 7])
+    // .orWhere("id", "in", [9])
+    // .whereNotIn("id", [9, 10])
+    .then(zoos => {
+      res.status(200).json({ msg: zoos });
+    })
+    .catch(err => {
+      res.status(500).json({ msg: err });
+    });
+});
+
+server.post("/boos", (req, res) => {
+  const bills = req.body;
+
+  db.insert(bills)
+    .into("bills")
+    .then(ids => {
+      console.log("ids===>", ids);
+      const id = ids[0];
+      res.status(201).json({ ...bills, id });
+    })
+    .catch(err => {
+      res.status(500).json({ msg: err });
     });
 });
 
